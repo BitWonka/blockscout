@@ -928,7 +928,8 @@ config :indexer, Indexer.Fetcher.CoinBalance.Realtime,
   batch_size: coin_balances_batch_size,
   concurrency: coin_balances_concurrency
 
-config :indexer, Indexer.Fetcher.Optimism.TransactionBatch.Supervisor, enabled: ConfigHelper.chain_type() == :optimism
+config :indexer, Indexer.Fetcher.Optimism.TransactionBatch.Supervisor,
+       enabled: ConfigHelper.chain_type() == :optimism and !ConfigHelper.parse_bool_env_var("INDEXER_OPTIMISM_DISABLE_TRANSACTION_BATCH")
 config :indexer, Indexer.Fetcher.Optimism.OutputRoot.Supervisor, enabled: ConfigHelper.chain_type() == :optimism
 config :indexer, Indexer.Fetcher.Optimism.DisputeGame.Supervisor, enabled: ConfigHelper.chain_type() == :optimism
 config :indexer, Indexer.Fetcher.Optimism.Deposit.Supervisor, enabled: ConfigHelper.chain_type() == :optimism
