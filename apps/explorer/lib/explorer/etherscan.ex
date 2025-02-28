@@ -650,8 +650,12 @@ defmodule Explorer.Etherscan do
         select_merge(tt_query, [_tt, tkn], %{token_type: tkn.type})
       end
 
-    tt_specific_token_query =
+    tt_query_with_erc20_filter =
       tt_query_with_token_type
+      |> where([tt, tkn], tkn.type == "ERC-20")
+
+    tt_specific_token_query =
+      tt_query_with_erc20_filter
       |> where_start_block_match_tt(options)
       |> where_end_block_match_tt(options)
       |> where_contract_address_match(contract_address_hash)
