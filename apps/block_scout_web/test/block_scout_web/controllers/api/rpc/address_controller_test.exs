@@ -2279,39 +2279,50 @@ defmodule BlockScoutWeb.API.RPC.AddressControllerTest do
       assert :ok = ExJsonSchema.Validator.validate(tokentx_schema(), response)
     end
 
-    test "has correct value for ERC-721", %{conn: conn} do
+    test "does not include ERC-721 transfers", %{conn: conn} do
+      address = insert(:address)
+
       transaction =
         :transaction
         |> insert()
         |> with_block()
 
-      token_address = insert(:contract_address)
-      insert(:token, %{contract_address: token_address, type: "ERC-721"})
+      # Insert an ERC-20 token transfer
+      erc20_token = insert(:token, type: "ERC-20")
+      insert(:token_transfer,
+        from_address: address,
+        token_contract_address: erc20_token.contract_address,
+        transaction: transaction,
+        block: transaction.block,
+        block_number: transaction.block_number
+      )
 
-      token_transfer =
-        insert(:token_transfer, %{
-          token_contract_address: token_address,
-          token_ids: [666],
-          transaction: transaction,
-          block: transaction.block,
-          block_number: transaction.block_number
-        })
-
-      {:ok, _} = Chain.token_from_address_hash(token_transfer.token_contract_address_hash)
+      # Insert an ERC-721 token transfer
+      erc721_token = insert(:token, type: "ERC-721")
+      insert(:token_transfer,
+        from_address: address,
+        token_contract_address: erc721_token.contract_address,
+        token_ids: [666],
+        transaction: transaction,
+        block: transaction.block,
+        block_number: transaction.block_number
+      )
 
       params = %{
         "module" => "account",
         "action" => "tokentx",
-        "address" => to_string(token_transfer.from_address.hash)
+        "address" => to_string(address.hash)
       }
 
       assert response =
-               %{"result" => [result]} =
                conn
                |> get("/api", params)
                |> json_response(200)
 
-      assert result["tokenID"] == to_string(List.first(token_transfer.token_ids))
+      assert length(response["result"]) == 1
+      [result] = response["result"]
+      assert result["tokenID"] == nil
+      assert result["contractAddress"] == to_string(erc20_token.contract_address_hash)
       assert response["status"] == "1"
       assert response["message"] == "OK"
       assert :ok = ExJsonSchema.Validator.validate(tokentx_schema(), response)
